@@ -17,8 +17,8 @@ function render() {
   $('emptyState').hidden = filtered.length > 0; $('itemSummary').textContent = `${items.length} item${items.length === 1 ? '' : 's'} in your shop`; $('selectionCount').textContent = selected.size; $('shareSelected').classList.toggle('has-selection', selected.size > 0); $('clearSelection').hidden = !selected.size;
 }
 async function loadItems(silent = false) { try { items = await api('/items'); render(); } catch { if (!silent && token()) toast('Unable to load prices'); } }
-function showLogin() { clearInterval(refreshTimer); $('loginScreen').hidden = false; $('appShell').hidden = true; }
-function showApp() { $('loginScreen').hidden = true; $('appShell').hidden = false; loadItems(); clearInterval(refreshTimer); refreshTimer = setInterval(() => loadItems(true), 10000); }
+function showLogin() { clearInterval(refreshTimer); $('loginScreen').hidden = false; $('appShell').hidden = true; $('addItem').hidden = true; }
+function showApp() { $('loginScreen').hidden = true; $('appShell').hidden = false; $('addItem').hidden = false; loadItems(); clearInterval(refreshTimer); refreshTimer = setInterval(() => loadItems(true), 10000); }
 function openEditor(item) { $('itemForm').reset(); $('editingId').value = item?.id || ''; $('editorTitle').textContent = item ? 'Edit item' : 'Add an item'; $('name').value = item?.name || ''; $('price').value = item?.history[0] ?? ''; $('unit').value = item?.unit || 'piece'; $('backdrop').hidden = $('editor').hidden = false; setTimeout(() => $('name').focus(), 50); }
 function closeEditor() { $('backdrop').hidden = $('editor').hidden = true; }
 $('loginForm').onsubmit = async (e) => { e.preventDefault(); $('loginError').textContent = ''; $('loginButton').disabled = true; try { const result = await api('/auth-login', {method:'POST', body:JSON.stringify({email:$('email').value.trim(), password:$('password').value})}); sessionStorage.setItem('pricepocket-token', result.token); showApp(); } catch { $('loginError').textContent = 'Incorrect email or password.'; } finally { $('loginButton').disabled = false; } };
