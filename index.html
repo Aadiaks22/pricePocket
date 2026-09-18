@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d4ed8" />
+    <title>PricePocket</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <section class="login-screen" id="loginScreen">
+      <div class="login-panel">
+        <div class="brand-lockup"><div class="brand-mark">₹</div><div><p class="eyebrow">MY SHOP</p><h1>PricePocket</h1></div></div>
+        <div class="login-copy"><p class="eyebrow">STAFF ACCESS</p><h2>Your shop prices,<br>always current.</h2><p>Sign in to view and update the live price list.</p></div>
+        <form id="loginForm" class="login-form">
+          <label>Email<input id="email" type="email" autocomplete="email" required placeholder="you@yourshop.com" /></label>
+          <label>Password<input id="password" type="password" autocomplete="current-password" required placeholder="Your password" /></label>
+          <p class="login-error" id="loginError" role="alert"></p>
+          <button class="primary-button" id="loginButton" type="submit">Sign in</button>
+        </form>
+      </div>
+    </section>
+    <main class="app-shell" id="appShell" hidden>
+      <header class="topbar">
+        <div class="brand-lockup">
+          <div class="brand-mark">₹</div>
+          <div><p class="eyebrow">MY SHOP</p><h1>PricePocket</h1></div>
+        </div>
+        <div class="header-actions"><button class="sign-out" id="signOut">Sign out</button><button class="icon-button" id="shareSelected" aria-label="Share selected items" title="Share selected items">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
+          <span class="selection-count" id="selectionCount">0</span>
+        </button></div>
+      </header>
+
+      <section class="intro">
+        <div><p class="eyebrow">INVENTORY</p><h2>Today’s prices</h2></div>
+        <p id="itemSummary">0 items in your shop</p>
+      </section>
+
+      <section class="toolbar" aria-label="Item controls">
+        <label class="search"><svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg><input id="search" type="search" placeholder="Search items" /></label>
+        <button class="filter-button" id="clearSelection" hidden>Clear</button>
+      </section>
+
+      <section id="items" class="items" aria-live="polite"></section>
+      <section id="emptyState" class="empty-state" hidden>
+        <div class="empty-icon">⌁</div>
+        <h3>No items found</h3>
+        <p>Add your first item to start tracking its price.</p>
+      </section>
+    </main>
+
+    <button class="fab" id="addItem" aria-label="Add a new item"><span>+</span> Add item</button>
+
+    <div class="sheet-backdrop" id="backdrop" hidden></div>
+    <section class="bottom-sheet" id="editor" aria-labelledby="editorTitle" hidden>
+      <div class="sheet-handle"></div>
+      <div class="sheet-head"><h2 id="editorTitle">Add an item</h2><button class="close-button" id="closeEditor" aria-label="Close">×</button></div>
+      <form id="itemForm">
+        <input id="editingId" type="hidden" />
+        <label>Item name<input id="name" required maxlength="40" placeholder="e.g. Basmati Rice" /></label>
+        <div class="form-row">
+          <label>Price (₹)<input id="price" type="number" required min="0" step="0.01" placeholder="0" /></label>
+          <label>Per<select id="unit"><option value="piece">Piece</option><option value="kg">Kg</option><option value="gram">100 g</option><option value="litre">Litre</option><option value="packet">Packet</option><option value="dozen">Dozen</option></select></label>
+        </div>
+        <p class="form-note">Saving a new price keeps the last 3 price updates.</p>
+        <button class="primary-button" type="submit">Save item</button>
+      </form>
+    </section>
+
+    <div class="toast" id="toast" role="status"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

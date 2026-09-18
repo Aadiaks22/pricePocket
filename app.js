@@ -1,0 +1,29 @@
+const $ = (id) => document.getElementById(id);
+let items = [], selected = new Set(), refreshTimer;
+const money = (v) => `₹${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+const unitText = (u) => ({piece:'piece',kg:'kg',gram:'100 g',litre:'litre',packet:'packet',dozen:'dozen'}[u] || u);
+const escapeHtml = (text) => { const e = document.createElement('span'); e.textContent = text; return e.innerHTML; };
+const token = () => sessionStorage.getItem('pricepocket-token');
+function toast(msg) { $('toast').textContent = msg; $('toast').classList.add('show'); setTimeout(() => $('toast').classList.remove('show'), 2200); }
+async function api(path, options = {}) {
+  const response = await fetch(`/.netlify/functions${path}`, { ...options, headers: { 'Content-Type':'application/json', ...(token() ? {Authorization:`Bearer ${token()}`} : {}), ...options.headers } });
+  if (response.status === 401) { sessionStorage.removeItem('pricepocket-token'); showLogin(); throw new Error('Session expired'); }
+  if (!response.ok) throw new Error((await response.json().catch(() => ({}))).error || 'Request failed');
+  return response.status === 204 ? null : response.json();
+}
+function render() {
+  const query = $('search').value.trim().toLowerCase(), filtered = items.filter(x => x.name.toLowerCase().includes(query));
+  $('items').innerHTML = filtered.map(item => `<article class="item-row ${selected.has(item.id) ? 'selected' : ''}"><input class="select-dot" type="checkbox" data-select="${item.id}" ${selected.has(item.id) ? 'checked' : ''} aria-label="Select ${item.name}"><div class="item-main"><h3 class="item-name">${escapeHtml(item.name)}</h3><div class="history-list">${item.history.slice(0,3).map(p => `<span class="history-price">${money(p)}</span>`).join('')}</div></div><div class="row-price"><div class="price">${money(item.history[0])}</div><div class="unit">per ${unitText(item.unit)}</div></div><div class="row-actions"><button class="mini-action" data-edit="${item.id}">Edit</button><button class="mini-action delete" data-delete="${item.id}">×</button></div></article>`).join('');
+  $('emptyState').hidden = filtered.length > 0; $('itemSummary').textContent = `${items.length} item${items.length === 1 ? '' : 's'} in your shop`; $('selectionCount').textContent = selected.size; $('shareSelected').classList.toggle('has-selection', selected.size > 0); $('clearSelection').hidden = !selected.size;
+}
+async function loadItems(silent = false) { try { items = await api('/items'); render(); } catch { if (!silent && token()) toast('Unable to load prices'); } }
+function showLogin() { clearInterval(refreshTimer); $('loginScreen').hidden = false; $('appShell').hidden = true; }
+function showApp() { $('loginScreen').hidden = true; $('appShell').hidden = false; loadItems(); clearInterval(refreshTimer); refreshTimer = setInterval(() => loadItems(true), 10000); }
+function openEditor(item) { $('itemForm').reset(); $('editingId').value = item?.id || ''; $('editorTitle').textContent = item ? 'Edit item' : 'Add an item'; $('name').value = item?.name || ''; $('price').value = item?.history[0] ?? ''; $('unit').value = item?.unit || 'piece'; $('backdrop').hidden = $('editor').hidden = false; setTimeout(() => $('name').focus(), 50); }
+function closeEditor() { $('backdrop').hidden = $('editor').hidden = true; }
+$('loginForm').onsubmit = async (e) => { e.preventDefault(); $('loginError').textContent = ''; $('loginButton').disabled = true; try { const result = await api('/auth-login', {method:'POST', body:JSON.stringify({email:$('email').value.trim(), password:$('password').value})}); sessionStorage.setItem('pricepocket-token', result.token); showApp(); } catch { $('loginError').textContent = 'Incorrect email or password.'; } finally { $('loginButton').disabled = false; } };
+$('signOut').onclick = () => { sessionStorage.removeItem('pricepocket-token'); showLogin(); }; $('addItem').onclick = () => openEditor(); $('closeEditor').onclick = closeEditor; $('backdrop').onclick = closeEditor; $('search').oninput = render; $('clearSelection').onclick = () => { selected.clear(); render(); };
+$('itemForm').onsubmit = async (e) => { e.preventDefault(); const id = $('editingId').value, name = $('name').value.trim(), price = Number($('price').value), unit = $('unit').value, old = items.find(x => x.id === id); const history = old ? (old.history[0] === price ? old.history : [price, ...old.history].slice(0,3)) : [price]; try { await api(id ? `/items?id=${encodeURIComponent(id)}` : '/items', {method: id ? 'PUT' : 'POST', body:JSON.stringify({name, unit, history})}); closeEditor(); await loadItems(); toast(old ? 'Price updated for everyone' : 'Item added for everyone'); } catch { toast('Could not save your change'); } };
+$('items').onclick = async (e) => { const id = e.target.dataset.edit || e.target.dataset.delete || e.target.dataset.select; if (!id) return; const item = items.find(x => x.id === id); if (e.target.dataset.select) { selected.has(id) ? selected.delete(id) : selected.add(id); render(); } else if (e.target.dataset.edit) openEditor(item); else if (e.target.dataset.delete && confirm(`Delete ${item.name}?`)) { try { await api(`/items?id=${encodeURIComponent(id)}`, {method:'DELETE'}); selected.delete(id); await loadItems(); toast('Item deleted for everyone'); } catch { toast('Could not delete item'); } } };
+$('shareSelected').onclick = async () => { const chosen = items.filter(x => selected.has(x.id)); if (!chosen.length) return toast('Select items to share first'); const text = `My shop prices\n\n${chosen.map(x => `• ${x.name}: ${money(x.history[0])} per ${unitText(x.unit)}`).join('\n')}`; try { if (navigator.share) await navigator.share({title:'My shop prices', text}); else { await navigator.clipboard.writeText(text); toast('Price details copied'); } } catch (e) { if (e.name !== 'AbortError') toast('Could not share right now'); } };
+token() ? showApp() : showLogin();
