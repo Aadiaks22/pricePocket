@@ -26,7 +26,8 @@ function openEditor(item) { $('itemForm').reset(); $('editingId').value=item?.id
 function closeEditor() { $('backdrop').hidden=$('editor').hidden=true; }
 function customUnit() { return $('unit').value === 'custom' ? $('customUnit').value.trim() : $('unit').value; }
 async function uploadImage(file) {
-  if (!file.type.startsWith('image/')) throw new Error('Only image files are allowed');
+  const isImage = file && (String(file.type || '').startsWith('image/') || /\.(jpe?g|png|webp|gif|heic)$/i.test(file.name || ''));
+  if (!isImage) throw new Error('Please choose a JPG, PNG, WebP, GIF, or HEIC image');
   const auth = await api('/imagekit-auth'); const safeName = file.name.replace(/[^a-z0-9._-]/gi,'-'); const body = new FormData();
   body.append('file',file); body.append('fileName',`${crypto.randomUUID()}-${safeName}`); body.append('folder','/pricepocket'); body.append('useUniqueFileName','true'); body.append('isPrivateFile','true'); body.append('publicKey',auth.publicKey); body.append('signature',auth.signature); body.append('expire',auth.expire); body.append('token',auth.token);
   const response = await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body}); if (!response.ok) throw new Error('Image upload failed'); const image = await response.json(); return {fileId:image.fileId,filePath:image.filePath,name:image.name};
