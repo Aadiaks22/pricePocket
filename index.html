@@ -10,7 +10,7 @@
   <body>
     <section class="login-screen" id="loginScreen">
       <div class="login-panel">
-        <div class="brand-lockup"><div class="brand-mark">₹</div><div><p class="eyebrow">ADARSH SILAI MATERIALS</p><h1>PricePocket</h1></div></div>
+        <div class="brand-lockup"><div class="brand-mark">₹</div><div><p class="eyebrow">ADASH SILAI MATERIALS</p><h1>PricePocket</h1></div></div>
         <div class="login-copy"><p class="eyebrow">STAFF ACCESS</p><h2>Your shop prices,<br>always current.</h2><p>Sign in to view and update the live price list.</p></div>
         <form id="loginForm" class="login-form">
           <label>Email<input id="email" type="email" autocomplete="email" required placeholder="you@yourshop.com" /></label>
@@ -24,7 +24,7 @@
       <header class="topbar">
         <div class="brand-lockup">
           <div class="brand-mark">₹</div>
-          <div><p class="eyebrow">ADARSH SILAI MATERIALS</p><h1>PricePocket</h1></div>
+          <div><p class="eyebrow">ADASH SILAI MATERIALS</p><h1>PricePocket</h1></div>
         </div>
         <div class="header-actions"><button class="sign-out" id="signOut">Sign out</button><button class="icon-button" id="shareSelected" aria-label="Share selected items" title="Share selected items">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
@@ -61,8 +61,11 @@
         <label>Item name<input id="name" required maxlength="40" placeholder="e.g. Basmati Rice" /></label>
         <div class="form-row">
           <label>Price (₹)<input id="price" type="number" required min="0" step="0.01" placeholder="0" /></label>
-          <label>Per<select id="unit"><option value="piece">Piece</option><option value="kg">Kg</option><option value="gram">100 g</option><option value="litre">Litre</option><option value="packet">Packet</option><option value="dozen">Dozen</option></select></label>
+          <label>Per<select id="unit"><option value="piece">Piece</option><option value="kg">Kg</option><option value="gram">100 g</option><option value="litre">Litre</option><option value="packet">Packet</option><option value="dozen">Dozen</option><option value="custom">Custom</option></select></label>
         </div>
+        <label id="customUnitWrap" hidden>Custom unit<input id="customUnit" maxlength="20" placeholder="e.g. 5 pieces or 10 pic" /></label>
+        <label class="image-input">Item photos <span>Up to 3 photos</span><input id="images" type="file" accept="image/*" multiple /></label>
+        <div class="image-preview" id="imagePreview"></div>
         <p class="form-note">Saving a new price keeps the last 3 price updates.</p>
         <button class="primary-button" type="submit">Save item</button>
       </form>
