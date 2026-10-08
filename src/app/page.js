@@ -75,8 +75,11 @@ function LoginForm({ onLogin, onBack }) {
   );
 }
 
-function ItemEditor({ item, onClose, onSaved, showToast }) {
+function ItemEditor({ item, onClose, onSaved, showToast, existingCategories = [] }) {
   const [name, setName] = useState(item?.name || "");
+  const initialCategory = item ? (existingCategories.includes(item.category) ? item.category : "custom") : (existingCategories.length > 0 ? existingCategories[0] : "custom");
+  const [category, setCategory] = useState(initialCategory);
+  const [customCategoryStr, setCustomCategoryStr] = useState(initialCategory === "custom" ? (item?.category || "") : "");
   const [price, setPrice] = useState(item?.history?.[0] || "");
   const fixedUnits = ["piece", "kg", "gram", "litre", "packet", "dozen"];
   const initialUnit = item ? (fixedUnits.includes(item.unit) ? item.unit : "custom") : "piece";
@@ -133,6 +136,8 @@ function ItemEditor({ item, onClose, onSaved, showToast }) {
     e.preventDefault();
     const finalUnit = unit === "custom" ? customUnitStr.trim() : unit;
     if (!finalUnit) return showToast("Enter a custom unit");
+    const finalCategory = category === "custom" ? customCategoryStr.trim() : category;
+    if (!finalCategory) return showToast("Enter a category");
     
     const token = sessionStorage.getItem("pricepocket-token");
     setLoading(true);
@@ -153,7 +158,7 @@ function ItemEditor({ item, onClose, onSaved, showToast }) {
       const res = await fetch(url, {
         method: item ? "PUT" : "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, unit: finalUnit, history, images, removedImageIds })
+        body: JSON.stringify({ name, category: finalCategory, unit: finalUnit, history, images, removedImageIds })
       });
       
       if (!res.ok) {
@@ -180,6 +185,15 @@ function ItemEditor({ item, onClose, onSaved, showToast }) {
         </div>
         <form onSubmit={handleSubmit}>
           <label>Item name<input required maxLength="40" placeholder="e.g. Basmati Rice" value={name} onChange={e => setName(e.target.value)} /></label>
+          <label>Category
+            <select value={category} onChange={e => setCategory(e.target.value)}>
+              {existingCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="custom">Add New Category...</option>
+            </select>
+          </label>
+          {category === "custom" && (
+            <label>New category name<input required maxLength="40" placeholder="e.g. Electronics" value={customCategoryStr} onChange={e => setCustomCategoryStr(e.target.value)} /></label>
+          )}
           <div className="form-row">
             <label>Price (₹)<input type="number" required min="0" step="0.01" placeholder="0" value={price} onChange={e => setPrice(e.target.value)} /></label>
             <label>Per
@@ -213,9 +227,12 @@ export default function Dashboard() {
   const [token, setToken] = useState(null);
   const [items, setItems] = useState([]);
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
   const [selected, setSelected] = useState(new Set());
   const [editorItem, setEditorItem] = useState(null);
   const [showEditor, setShowEditor] = useState(false);
+  const [cart, setCart] = useState({});
+  const [showCart, setShowCart] = useState(false);
   const [toastMsg, setToastMsg] = useState({ text: "", visible: false });
   const [isSharing, setIsSharing] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -263,7 +280,34 @@ export default function Dashboard() {
     );
   }
 
-  const filtered = items.filter(i => i.name.toLowerCase().includes(search.toLowerCase()));
+  const categories = ["All", ...Array.from(new Set(items.map(i => i.category || "Uncategorized"))).sort()];
+  
+  const filtered = items.filter(i => {
+    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
+    const matchCat = selectedCategory === "All" || (i.category || "Uncategorized") === selectedCategory;
+    return matchSearch && matchCat;
+  });
+
+  const handleUpdateCart = (id, change) => {
+    setCart(prev => {
+      const next = { ...prev };
+      const current = next[id] || 0;
+      const updated = current + change;
+      if (updated <= 0) delete next[id];
+      else next[id] = updated;
+      return next;
+    });
+  };
+
+  const handleSetCart = (id, value) => {
+    setCart(prev => {
+      const next = { ...prev };
+      const val = parseInt(value, 10);
+      if (isNaN(val) || val <= 0) delete next[id];
+      else next[id] = val;
+      return next;
+    });
+  };
 
   const toggleSelect = (id) => {
     const next = new Set(selected);
@@ -318,6 +362,25 @@ export default function Dashboard() {
     }
   };
 
+  const shareCartWhatsApp = () => {
+    const lines = ["*New Order Request:*", ""];
+    let total = 0;
+    Object.keys(cart).forEach(id => {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        const qty = cart[id];
+        const cost = qty * item.history[0];
+        total += cost;
+        lines.push(`• ${item.name}`);
+        lines.push(`  ${qty} ${unitText(item.unit)} x ${money(item.history[0])} = ${money(cost)}`);
+      }
+    });
+    lines.push("");
+    lines.push(`*Estimated Total: ${money(total)}*`);
+    const text = encodeURIComponent(lines.join("\n"));
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
+
   return (
     <>
       <main className="app-shell">
@@ -351,6 +414,13 @@ export default function Dashboard() {
             <svg viewBox="0 0 24 24"><path d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0 8 8 0 0 1 16 0Z"/></svg>
             <input type="search" placeholder="Search items" value={search} onChange={e => setSearch(e.target.value)} />
           </label>
+          <select 
+            value={selectedCategory} 
+            onChange={e => setSelectedCategory(e.target.value)}
+            style={{ width: '130px', height: '44px', border: '1px solid #e7eaf0', borderRadius: '12px', padding: '0 12px', outline: 'none', background: '#fff', color: '#172033', fontWeight: '600' }}
+          >
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
           {selected.size > 0 && <button className="filter-button" onClick={() => setSelected(new Set())}>Clear</button>}
         </section>
 
@@ -375,7 +445,7 @@ export default function Dashboard() {
                   </div>
                 )}
                 <div className="item-main">
-                  <h3 className="item-name">{item.name}</h3>
+                  <h3 className="item-name">{item.name} <span style={{fontSize: '10px', color: '#72809a', marginLeft: '6px', fontWeight: '600', padding: '2px 6px', background: '#f6f8fc', borderRadius: '6px', border: '1px solid #e7eaf0'}}>{item.category || 'Uncategorized'}</span></h3>
                   {token && (
                     <div className="history-list">
                       {item.history.slice(0, 3).map((price, i) => <span key={i} className="history-price">{money(price)}</span>)}
@@ -385,6 +455,25 @@ export default function Dashboard() {
                 <div className="row-price">
                   <div className="price">{money(item.history[0])}</div>
                   <div className="unit">per {unitText(item.unit)}</div>
+                  {!token && (
+                    <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
+                      {cart[item.id] ? (
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <button className="mini-action" onClick={() => handleUpdateCart(item.id, -1)}>−</button>
+                          <input 
+                            type="number" 
+                            min="0"
+                            value={cart[item.id] || ""} 
+                            onChange={(e) => handleSetCart(item.id, e.target.value)}
+                            style={{ width: '40px', height: '28px', textAlign: 'center', padding: '0', border: '1px solid #e7eaf0', borderRadius: '6px', fontWeight: '700' }} 
+                          />
+                          <button className="mini-action" onClick={() => handleUpdateCart(item.id, 1)}>+</button>
+                        </div>
+                      ) : (
+                        <button className="mini-action" onClick={() => handleUpdateCart(item.id, 1)} style={{ background: '#eef2f8', color: '#1d4ed8' }}>+ Add</button>
+                      )}
+                    </div>
+                  )}
                 </div>
                 {token && (
                   <div className="row-actions">
@@ -409,6 +498,66 @@ export default function Dashboard() {
           <span>+</span> Add item
         </button>
       )}
+      
+      {!token && Object.keys(cart).length > 0 && (
+        <button className="fab" onClick={() => setShowCart(true)} style={{ background: '#10b981', boxShadow: '0 12px 25px rgba(16, 185, 129, 0.3)' }}>
+          View Cart ({Object.keys(cart).length})
+        </button>
+      )}
+
+      {showCart && (
+        <>
+          <div className="sheet-backdrop" onClick={() => setShowCart(false)}></div>
+          <section className="bottom-sheet" aria-labelledby="cartTitle">
+            <div className="sheet-handle"></div>
+            <div className="sheet-head">
+              <h2 id="cartTitle">Your Order</h2>
+              <button className="close-button" onClick={() => setShowCart(false)}>×</button>
+            </div>
+            <div style={{ marginTop: '16px', maxHeight: '50vh', overflowY: 'auto' }}>
+              {Object.keys(cart).map(id => {
+                const item = items.find(i => i.id === id);
+                if (!item) return null;
+                const cost = cart[item.id] * item.history[0];
+                return (
+                  <div key={id} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid #e7eaf0' }}>
+                    <div>
+                      <div style={{fontWeight: '700', fontSize: '15px'}}>{item.name}</div>
+                      <div style={{fontSize: '12px', color: '#72809a', marginTop: '4px'}}>{money(item.history[0])} / {unitText(item.unit)} <span style={{fontWeight: '600', color: '#172033', marginLeft: '6px'}}>= {money(cost)}</span></div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <button className="mini-action" onClick={() => handleUpdateCart(item.id, -1)}>−</button>
+                      <input 
+                        type="number" 
+                        min="0"
+                        value={cart[item.id] || ""} 
+                        onChange={(e) => handleSetCart(item.id, e.target.value)}
+                        style={{ width: '40px', height: '28px', textAlign: 'center', padding: '0', border: '1px solid #e7eaf0', borderRadius: '6px', fontWeight: '700' }} 
+                      />
+                      <button className="mini-action" onClick={() => handleUpdateCart(item.id, 1)}>+</button>
+                      <button className="mini-action delete" onClick={() => handleSetCart(item.id, 0)} style={{ marginLeft: '4px' }}>×</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {Object.keys(cart).length > 0 && (
+              <div style={{ marginTop: '16px', padding: '12px 0', borderTop: '2px solid #e7eaf0', display: 'flex', justifyContent: 'space-between', fontWeight: '800', fontSize: '16px', color: '#172033' }}>
+                <span>Grand Total</span>
+                <span>{money(Object.keys(cart).reduce((sum, id) => {
+                  const i = items.find(it => it.id === id);
+                  return sum + (i ? cart[id] * i.history[0] : 0);
+                }, 0))}</span>
+              </div>
+            )}
+            
+            <button className="primary-button" onClick={shareCartWhatsApp} style={{ marginTop: '16px', background: '#25D366' }}>
+              Send Order via WhatsApp
+            </button>
+          </section>
+        </>
+      )}
 
       {showEditor && (
         <ItemEditor 
@@ -416,6 +565,7 @@ export default function Dashboard() {
           onClose={() => setShowEditor(false)} 
           onSaved={(msg) => { setShowEditor(false); loadItems(); showToast(msg); }} 
           showToast={showToast} 
+          existingCategories={categories.filter(c => c !== "All")}
         />
       )}
 

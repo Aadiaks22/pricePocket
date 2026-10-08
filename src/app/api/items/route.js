@@ -5,9 +5,9 @@ import { itemsCollection } from '@/lib/mongodb';
 import { deleteImage, signedImageUrl } from '@/lib/imagekit';
 
 const starterItems = [
-  { id: 'rice', name: 'Basmati Rice', unit: 'kg', history: [145, 140, 135] },
-  { id: 'oil', name: 'Sunflower Oil', unit: 'litre', history: [168, 165, 160] },
-  { id: 'biscuits', name: 'Butter Biscuits', unit: 'packet', history: [35, 30] }
+  { id: 'rice', name: 'Basmati Rice', category: 'Groceries', unit: 'kg', history: [145, 140, 135] },
+  { id: 'oil', name: 'Sunflower Oil', category: 'Groceries', unit: 'litre', history: [168, 165, 160] },
+  { id: 'biscuits', name: 'Butter Biscuits', category: 'Snacks', unit: 'packet', history: [35, 30] }
 ];
 
 function authorized(request) { 
@@ -43,7 +43,7 @@ export async function POST(request) {
   
   const collection = await itemsCollection();
   const body = await request.json();
-  const { name, unit, history, images = [] } = body;
+  const { name, category = 'Uncategorized', unit, history, images = [] } = body;
   
   if (!name || !unit || !Array.isArray(history) || !Array.isArray(images) || images.length > 3) {
     return NextResponse.json({ error: 'Invalid item' }, { status: 400 });
@@ -52,6 +52,7 @@ export async function POST(request) {
   const item = {
     id: randomUUID(),
     name: name.trim(),
+    category: category.trim(),
     unit,
     history: history.slice(0, 3),
     images: images.map(({ fileId, filePath, name, url }) => ({ fileId, filePath, name, url }))
@@ -69,7 +70,7 @@ export async function PUT(request) {
   
   const collection = await itemsCollection();
   const body = await request.json();
-  const { name, unit, history, images = [], removedImageIds = [] } = body;
+  const { name, category = 'Uncategorized', unit, history, images = [], removedImageIds = [] } = body;
   
   if (!name || !unit || !Array.isArray(history) || !Array.isArray(images) || images.length > 3) {
     return NextResponse.json({ error: 'Invalid item' }, { status: 400 });
@@ -79,6 +80,7 @@ export async function PUT(request) {
     { id },
     { $set: {
         name: name.trim(),
+        category: category.trim(),
         unit,
         history: history.slice(0, 3),
         images: images.map(({ fileId, filePath, name, url }) => ({ fileId, filePath, name, url }))
