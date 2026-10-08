@@ -13,7 +13,7 @@ function Toast({ message, visible }) {
   );
 }
 
-function LoginForm({ onLogin }) {
+function LoginForm({ onLogin, onBack }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -42,7 +42,16 @@ function LoginForm({ onLogin }) {
 
   return (
     <section className="login-screen">
-      <div className="login-panel">
+      <div className="login-panel" style={{ position: "relative" }}>
+        {onBack && (
+          <button 
+            type="button" 
+            onClick={onBack} 
+            style={{ position: "absolute", top: "24px", right: "24px", padding: "6px 12px", borderRadius: "6px", border: "1px solid #e2e8f0", backgroundColor: "white", color: "#0f172a", fontWeight: "600", cursor: "pointer", fontSize: "14px" }}
+          >
+            Back
+          </button>
+        )}
         <div className="brand-lockup">
           <div className="brand-mark">₹</div>
           <div>
@@ -59,7 +68,7 @@ function LoginForm({ onLogin }) {
           <label>Email<input type="email" required placeholder="you@yourshop.com" value={email} onChange={(e) => setEmail(e.target.value)} /></label>
           <label>Password<input type="password" required placeholder="Your password" value={password} onChange={(e) => setPassword(e.target.value)} /></label>
           <p className="login-error" role="alert">{error}</p>
-          <button className="primary-button" type="submit" disabled={loading}>{loading ? "Signing in..." : "Sign in"}</button>
+          <button className="primary-button" type="submit" disabled={loading} style={{ width: "100%", marginTop: "16px" }}>{loading ? "Signing in..." : "Sign in"}</button>
         </form>
       </div>
     </section>
@@ -209,6 +218,8 @@ export default function Dashboard() {
   const [showEditor, setShowEditor] = useState(false);
   const [toastMsg, setToastMsg] = useState({ text: "", visible: false });
   const [isSharing, setIsSharing] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
   const refreshTimer = useRef(null);
 
   useEffect(() => {
@@ -222,13 +233,12 @@ export default function Dashboard() {
   };
 
   const loadItems = async (silent = false) => {
-    if (!token) return;
     try {
-      const res = await fetch("/api/items", { headers: { Authorization: `Bearer ${token}` } });
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch("/api/items", { headers });
       if (res.status === 401) {
         sessionStorage.removeItem("pricepocket-token");
         setToken(null);
-        return;
       }
       if (!res.ok) throw new Error("Load failed");
       const data = await res.json();
@@ -239,17 +249,15 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (token) {
-      loadItems();
-      refreshTimer.current = setInterval(() => loadItems(true), 10000);
-    }
+    loadItems();
+    refreshTimer.current = setInterval(() => loadItems(true), 10000);
     return () => clearInterval(refreshTimer.current);
   }, [token]);
 
-  if (!token) {
+  if (showLogin) {
     return (
       <>
-        <LoginForm onLogin={setToken} />
+        <LoginForm onLogin={(t) => { setToken(t); setShowLogin(false); }} onBack={() => setShowLogin(false)} />
         <Toast message={toastMsg.text} visible={toastMsg.visible} />
       </>
     );
@@ -319,11 +327,17 @@ export default function Dashboard() {
             <div><p className="eyebrow">ADASH SILAI MATERIALS</p><h1>PricePocket</h1></div>
           </div>
           <div className="header-actions">
-            <button className="sign-out" onClick={() => { sessionStorage.removeItem("pricepocket-token"); setToken(null); }}>Sign out</button>
-            <button className={`icon-button ${selected.size ? "has-selection" : ""} ${isSharing ? "share-loading" : ""}`} onClick={handleShare} aria-label="Share">
-              <svg viewBox="0 0 24 24"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
-              <span className="selection-count">{selected.size}</span>
-            </button>
+            {token ? (
+              <button className="sign-out" onClick={() => { sessionStorage.removeItem("pricepocket-token"); setToken(null); }}>Sign out</button>
+            ) : (
+              <button className="sign-out" onClick={() => setShowLogin(true)}>Admin Login</button>
+            )}
+            {token && (
+              <button className={`icon-button ${selected.size ? "has-selection" : ""} ${isSharing ? "share-loading" : ""}`} onClick={handleShare} aria-label="Share">
+                <svg viewBox="0 0 24 24"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
+                <span className="selection-count">{selected.size}</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -344,22 +358,40 @@ export default function Dashboard() {
           <section className="items">
             {filtered.map(item => (
               <article key={item.id} className={`item-row ${selected.has(item.id) ? "selected" : ""}`}>
-                <input className="select-dot" type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} />
-                {item.images?.[0]?.signedUrl && <img className="item-thumb" src={item.images[0].signedUrl} alt="" />}
+                {token && <input className="select-dot" type="checkbox" checked={selected.has(item.id)} onChange={() => toggleSelect(item.id)} />}
+                {item.images && item.images.length > 0 && (
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    {item.images.map((img, idx) => (
+                      img.signedUrl && (
+                        <img 
+                          key={idx}
+                          className="item-thumb clickable-thumb" 
+                          src={img.signedUrl} 
+                          alt={`${item.name} ${idx + 1}`} 
+                          onClick={() => setPreviewImage(img.signedUrl)}
+                        />
+                      )
+                    ))}
+                  </div>
+                )}
                 <div className="item-main">
                   <h3 className="item-name">{item.name}</h3>
-                  <div className="history-list">
-                    {item.history.slice(0, 3).map((price, i) => <span key={i} className="history-price">{money(price)}</span>)}
-                  </div>
+                  {token && (
+                    <div className="history-list">
+                      {item.history.slice(0, 3).map((price, i) => <span key={i} className="history-price">{money(price)}</span>)}
+                    </div>
+                  )}
                 </div>
                 <div className="row-price">
                   <div className="price">{money(item.history[0])}</div>
                   <div className="unit">per {unitText(item.unit)}</div>
                 </div>
-                <div className="row-actions">
-                  <button className="mini-action" onClick={() => { setEditorItem(item); setShowEditor(true); }}>Edit</button>
-                  <button className="mini-action delete" onClick={() => handleDelete(item.id, item.name)}>×</button>
-                </div>
+                {token && (
+                  <div className="row-actions">
+                    <button className="mini-action" onClick={() => { setEditorItem(item); setShowEditor(true); }}>Edit</button>
+                    <button className="mini-action delete" onClick={() => handleDelete(item.id, item.name)}>×</button>
+                  </div>
+                )}
               </article>
             ))}
           </section>
@@ -372,9 +404,11 @@ export default function Dashboard() {
         )}
       </main>
 
-      <button className="fab" onClick={() => { setEditorItem(null); setShowEditor(true); }}>
-        <span>+</span> Add item
-      </button>
+      {token && (
+        <button className="fab" onClick={() => { setEditorItem(null); setShowEditor(true); }}>
+          <span>+</span> Add item
+        </button>
+      )}
 
       {showEditor && (
         <ItemEditor 
@@ -383,6 +417,13 @@ export default function Dashboard() {
           onSaved={(msg) => { setShowEditor(false); loadItems(); showToast(msg); }} 
           showToast={showToast} 
         />
+      )}
+
+      {previewImage && (
+        <div className="image-preview-modal" onClick={() => setPreviewImage(null)}>
+          <button className="close-preview" onClick={() => setPreviewImage(null)}>×</button>
+          <img src={previewImage} alt="Preview" onClick={e => e.stopPropagation()} />
+        </div>
       )}
 
       <Toast message={toastMsg.text} visible={toastMsg.visible} />

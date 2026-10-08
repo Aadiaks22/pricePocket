@@ -20,7 +20,6 @@ function authorized(request) {
 }
 
 export async function GET(request) {
-  if (!authorized(request)) return NextResponse.json({ error: 'Please sign in.' }, { status: 401 });
   
   const collection = await itemsCollection();
   
