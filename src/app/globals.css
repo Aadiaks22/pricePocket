@@ -26,7 +26,7 @@ button { cursor: pointer; }
 .app-shell { 
   max-width: 680px; 
   margin: 0 auto; 
-  padding: 25px 18px 110px; 
+  padding: 0 18px calc(40px + env(safe-area-inset-bottom, 0px)); 
 }
 
 .topbar, .brand-lockup, .intro, .toolbar, .item-row, .history-list, .sheet-head, .header-actions { 
@@ -36,6 +36,15 @@ button { cursor: pointer; }
 
 .topbar, .intro, .toolbar, .item-row, .sheet-head { 
   justify-content: space-between; 
+}
+
+.topbar { 
+  position: sticky; 
+  top: 0; 
+  z-index: 25; 
+  background: var(--bg); 
+  padding: 14px 0 10px; 
+  gap: 8px;
 }
 
 .brand-lockup { gap: 10px; } 
@@ -245,7 +254,8 @@ svg {
 .fab { 
   position: fixed; 
   right: max(20px, calc(50% - 322px)); 
-  bottom: 22px; 
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)); 
+  z-index: 30;
   border: 0; 
   border-radius: 14px; 
   padding: 13px 18px; 
@@ -253,7 +263,7 @@ svg {
   color: #fff; 
   font-weight: 800; 
   box-shadow: 0 12px 25px #1d4ed84d; 
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s, bottom 0.2s;
 }
 .fab:hover {
   transform: translateY(-2px);
@@ -266,13 +276,13 @@ svg {
   inset: 0; 
   background: #17203366; 
   backdrop-filter: blur(4px); 
-  z-index: 4; 
+  z-index: 40; 
   transition: opacity 0.3s;
 }
 
 .bottom-sheet { 
   position: fixed; 
-  z-index: 5; 
+  z-index: 50; 
   left: 50%; 
   bottom: 0; 
   width: min(680px, 100%); 
@@ -346,9 +356,9 @@ input:focus, select:focus {
 
 .toast { 
   position: fixed; 
-  z-index: 10; 
+  z-index: 60; 
   left: 50%; 
-  bottom: 90px; 
+  bottom: calc(30px + env(safe-area-inset-bottom, 0px)); 
   transform: translate(-50%, 20px); 
   opacity: 0; 
   pointer-events: none; 
@@ -362,7 +372,12 @@ input:focus, select:focus {
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-.header-actions { gap: 9px; }
+.header-actions { 
+  display: flex;
+  align-items: center;
+  gap: 8px; 
+  flex-shrink: 0;
+}
 
 .sign-out { 
   border: 0; 
@@ -370,6 +385,71 @@ input:focus, select:focus {
   color: var(--muted); 
   font-size: 12px; 
   font-weight: 700; 
+  padding: 6px 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+.sign-out:hover {
+  color: var(--ink);
+}
+
+.action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 13px;
+  font-size: 13px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+.action-btn:hover {
+  transform: translateY(-1px);
+}
+
+.view-cart-btn {
+  background: #10b981;
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+.view-cart-btn:hover {
+  background: #059669;
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.45);
+}
+
+.add-product-btn {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.35);
+}
+.add-product-btn:hover {
+  background: #1a42b8;
+  box-shadow: 0 6px 18px rgba(29, 78, 216, 0.45);
+}
+.add-product-btn span {
+  font-size: 16px;
+  line-height: 12px;
+  font-weight: 800;
+  margin-right: 2px;
+}
+
+.cart-icon {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2.2;
+}
+
+@media (max-width: 420px) {
+  .brand-lockup h1 { font-size: 16px; }
+  .brand-mark { width: 34px; height: 34px; font-size: 18px; }
+  .action-btn { padding: 7px 10px; font-size: 12px; gap: 4px; }
+  .sign-out { font-size: 11px; padding: 4px 2px; }
+  .header-actions { gap: 5px; }
 }
 
 .login-screen { 
@@ -398,8 +478,15 @@ input:focus, select:focus {
 .login-form .primary-button { margin-top: 1px; }
 
 @media (min-width: 700px) { 
-  .app-shell { padding-top: 36px; } 
-  .fab { right: calc(50% - 322px); } 
+  .app-shell { 
+    padding: 0 18px 50px; 
+  } 
+  .topbar {
+    padding: 20px 0 14px;
+  }
+  .toast { 
+    bottom: 40px; 
+  }
 }
 
 .item-thumb { 

@@ -391,15 +391,30 @@ export default function Dashboard() {
           </div>
           <div className="header-actions">
             {token ? (
-              <button className="sign-out" onClick={() => { sessionStorage.removeItem("pricepocket-token"); setToken(null); }}>Sign out</button>
+              <>
+                <button className="sign-out" onClick={() => { sessionStorage.removeItem("pricepocket-token"); setToken(null); }}>Sign out</button>
+                <button className={`icon-button ${selected.size ? "has-selection" : ""} ${isSharing ? "share-loading" : ""}`} onClick={handleShare} aria-label="Share">
+                  <svg viewBox="0 0 24 24"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
+                  <span className="selection-count">{selected.size}</span>
+                </button>
+                <button className="action-btn add-product-btn" onClick={() => { setEditorItem(null); setShowEditor(true); }}>
+                  <span>+</span> Add Product
+                </button>
+              </>
             ) : (
-              <button className="sign-out" onClick={() => setShowLogin(true)}>Admin Login</button>
-            )}
-            {token && (
-              <button className={`icon-button ${selected.size ? "has-selection" : ""} ${isSharing ? "share-loading" : ""}`} onClick={handleShare} aria-label="Share">
-                <svg viewBox="0 0 24 24"><path d="M18 8a3 3 0 1 0-2.82-4A3 3 0 0 0 15.2 5L8.9 8.15a3 3 0 1 0 0 7.7l6.3 3.15a3 3 0 1 0 .9-1.8l-6.3-3.15a3 3 0 0 0 0-2.1L16.1 8.8A3 3 0 0 0 18 8Z"/></svg>
-                <span className="selection-count">{selected.size}</span>
-              </button>
+              <>
+                <button className="sign-out" onClick={() => setShowLogin(true)}>Admin Login</button>
+                {Object.keys(cart).length > 0 && (
+                  <button className="action-btn view-cart-btn" onClick={() => setShowCart(true)}>
+                    <svg viewBox="0 0 24 24" className="cart-icon">
+                      <circle cx="9" cy="21" r="1"/>
+                      <circle cx="20" cy="21" r="1"/>
+                      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+                    </svg>
+                    <span>View Cart ({Object.keys(cart).length})</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </header>
@@ -493,17 +508,6 @@ export default function Dashboard() {
         )}
       </main>
 
-      {token && (
-        <button className="fab" onClick={() => { setEditorItem(null); setShowEditor(true); }}>
-          <span>+</span> Add item
-        </button>
-      )}
-      
-      {!token && Object.keys(cart).length > 0 && (
-        <button className="fab" onClick={() => setShowCart(true)} style={{ background: '#10b981', boxShadow: '0 12px 25px rgba(16, 185, 129, 0.3)' }}>
-          View Cart ({Object.keys(cart).length})
-        </button>
-      )}
 
       {showCart && (
         <>
